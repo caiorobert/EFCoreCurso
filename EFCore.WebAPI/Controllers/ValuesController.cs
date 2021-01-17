@@ -1,6 +1,7 @@
 ﻿using EFCore.Domain;
 using EFCore.Repository;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,8 +24,15 @@ namespace EFCore.WebAPI.Controllers
 		{
 			//LINQ Method: Linha abaixo, menos verboso a forma de buscar os dados
 			var listHeroi = _context.Herois
-											.Where(h => h.Nome.Contains(nome)) //Where do método LINQ Method
-											.ToList();
+											//.Where(h => h.Nome.Contains(nome)) //Where do método LINQ Method
+											.Where(h => EF.Functions.Like(h.Nome, $"%{nome}%")) //Where usando o LIKE do SQL
+											.OrderByDescending(h => h.Id) //Ordenando DESC
+											//.OrderBy(h => h.Id) //Ordenação ASC normal
+											//.ToList(); //Resultado para uma lista
+											//.FirstOrDefault(); //Retorna o primeiro resultado que encontrar (TOP 1).
+											//.SingleOrDefault(); //Faz um TOP 2, e se retornar mais de 1 resultado, é levantado uma exceção.
+											//Usar a linha acima somente quando há a real necessidade de retornar apenas 1 linha do BD.
+											.LastOrDefault(); //Retorna o último da lista, dependendo da ornação. É o oposto do FirstOrDefault().
 			//LINQ Query Syntax: duas linhas abaixo, é como um select ao contrário, é um pouco mais verboso. Ambas as formas funcionam.
 			//var listHeroi = (from heroi in _context.Herois
 			//								 where heroi.Nome.Contains(nome) //Aqui um where, recebendo da rota filtro/{nome} e filtrando o nome como like '%%'
