@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using EFCore.Domain;
+using EFCore.Repository;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,18 +12,76 @@ namespace EFCore.WebAPI.Controllers
 	[ApiController]
 	public class ValuesController : ControllerBase
 	{
-		// GET api/values
-		[HttpGet]
-		public ActionResult<IEnumerable<string>> Get()
+		public readonly HeroiContext _context;
+		public ValuesController(HeroiContext context)
 		{
-			return new string[] { "value1", "value2" };
+			_context = context;
+		}
+		// GET api/values
+		[HttpGet("filtro/{nome}")]
+		public ActionResult GetFiltro(string nome)
+		{
+			//LINQ Method: Linha abaixo, menos verboso a forma de buscar os dados
+			var listHeroi = _context.Herois
+											.Where(h => h.Nome.Contains(nome)) //Where do método LINQ Method
+											.ToList();
+			//LINQ Query Syntax: duas linhas abaixo, é como um select ao contrário, é um pouco mais verboso. Ambas as formas funcionam.
+			//var listHeroi = (from heroi in _context.Herois
+			//								 where heroi.Nome.Contains(nome) //Aqui um where, recebendo da rota filtro/{nome} e filtrando o nome como like '%%'
+			//								 select heroi).ToList();
+			return Ok(listHeroi);
+
+			//o .ToList(); fecha a conexão com o BD quando termina, mas se for usar o foreach, como abaixo, o banco ficaria aberto se 
+			//passemos o _context nos parametros do loop. Para evitar deixar a conexão aberta, faz o list igual acima (var listHeroi  = _context ...)
+			//e passa esse list no parametro do for, ai ele já vai ter pego o resultado do banco, armazenado na variável, 
+			//e vc usa ela, sem deixar a conexão aberta, causando problemas (lentidão por exemplo).
+			//foreach(var item in listHeroi)
+			//{
+			//	realizarAcao();
+			//	novaAcao();
+			//	SalvaDados();
+			//}
+
+			//Tente sempre realizar a criação de uma variável e logo após isso, executar o looping utilizando essa variável que recebeu 
+			//o valor de .ToList(); Assim, neste momento sua conexão ao banco de dados estará encerrada.
 		}
 
 		// GET api/values/5
-		[HttpGet("{id}")]
-		public ActionResult<string> Get(int id)
+		[HttpGet("Atualizar/{nameHero}")]
+		public ActionResult<string> Get(string nameHero)
 		{
-			return "value";
+			//recebe da URL a variável e salva numa var interna
+			//var heroi = new Heroi { Nome = nameHero };
+
+			//declara uma variavel e pega o valor do banco de dados, onde o Id for 3.
+			var heroi = _context.Herois
+											.Where(h => h.Id == 3)
+											.FirstOrDefault();
+
+			heroi.Nome = "Homem Aranha";
+			//_context.Herois.Add(heroi);
+			//_context.Add(heroi);
+			_context.SaveChanges();
+			return Ok();
+		}
+
+		// GET api/values/5
+		[HttpGet("AddRange")]
+		public ActionResult GetAddRange()
+		{
+			_context.AddRange(
+				new Heroi { Nome = "Capitão América" },
+				new Heroi { Nome = "Doutor Estranho" },
+				new Heroi { Nome = "Pantera Negra" },
+				new Heroi { Nome = "Viúva Negra" },
+				new Heroi { Nome = "Hulk" },
+				new Heroi { Nome = "Gavião Arqueiro" },
+				new Heroi { Nome = "Capitã Marvel" }
+			);
+
+			_context.SaveChanges();
+
+			return Ok();
 		}
 
 		// POST api/values
@@ -37,9 +97,15 @@ namespace EFCore.WebAPI.Controllers
 		}
 
 		// DELETE api/values/5
-		[HttpDelete("{id}")]
+		[HttpGet("Delete/{id}")]
 		public void Delete(int id)
 		{
+			var heroi = _context.Herois
+									.Where(x => x.Id == id)
+									.Single();
+
+			_context.Herois.Remove(heroi);
+			_context.SaveChanges();
 		}
 	}
 }
