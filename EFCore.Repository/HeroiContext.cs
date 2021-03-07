@@ -1,13 +1,9 @@
 ﻿using EFCore.Domain;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace EFCore.Repository
 {
-	public class HeroiContext : DbContext
+    public class HeroiContext : DbContext
 	{
 		//public HeroiContext()
 		//{
@@ -24,6 +20,7 @@ namespace EFCore.Repository
 		//protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 		//{
 		//	optionsBuilder.UseSqlServer("Password=123Aa321;Persist Security Info=True;User ID=sa;Initial Catalog=HeroApp;Data Source=LAPTOP-46VKID3V\\SQLEXPRESS");
+		//Password=123Aa321;Persist Security Info=True;User ID = sa; Data Source = LAPTOP - LVT2BOBN
 		//}
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
