@@ -15,20 +15,22 @@ namespace EFCore.WebAPI.Controllers
     [ApiController]
     public class HeroiController : ControllerBase
     {
-        private readonly HeroiContext _context;
+        private readonly IEFCoreRepository _repo;
 
-        public HeroiController(HeroiContext context)
+        public HeroiController(IEFCoreRepository repo)
         {
-            _context = context;
+            _repo = repo;
         }
 
         // GET: api/<HeroiController>
         [HttpGet]
-        public ActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                return Ok(new Heroi());
+                var herois = await _repo.GetAllHerois(true);
+
+                return Ok(herois);
             }
             catch (Exception ex)
             {
@@ -38,58 +40,121 @@ namespace EFCore.WebAPI.Controllers
 
         // GET api/<HeroiController>/5
         [HttpGet("{id}")]
-        public ActionResult Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
-            return Ok("value");
+            try
+            {
+                var heroi = await _repo.GetHeroiById(id, true);
+                if (heroi != null)
+                {
+                    return Ok(heroi);
+                }
+                else
+                {
+                    return NoContent();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro: {ex}");
+            }
+        }
+
+        // GET api/<HeroiController>/5
+        [HttpGet("buscaPorNome/{nome}")]
+        public async Task<IActionResult> GetHeroisByNome(string nome)
+        {
+            try
+            {
+                var herois = await _repo.GetHeroisByNome(nome, true);
+                if (herois != null)
+                {
+                    return Ok(herois);
+                }
+                else
+                {
+                    return NoContent();
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro: {ex}");
+            }
         }
 
         // POST api/<HeroiController>
         [HttpPost]
-        public ActionResult Post([FromBody] Heroi input)
+        public async Task<IActionResult> Post([FromBody] Heroi input)
         {
             try
             {
-                _context.Herois.Add(input);
-                _context.SaveChanges();
+                _repo.Add(input);
 
-                return Ok("BAZINGA!");
+                if (await _repo.SaveChangeAsync())
+                {
+                    return Ok("BAZINGA");
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest($"Erro: {ex}");
             }
+
+            return BadRequest("Não salvou!");
         }
 
         // PUT api/<HeroiController>/5
         [HttpPut("{id}")]
-        public ActionResult Put([FromRoute]int id, [FromBody]Heroi input)
+        public async Task<IActionResult> Put([FromRoute]int id, [FromBody]Heroi input)
         {
             try
             {
-                if(_context.Herois
-                    .AsNoTracking()
-                    .FirstOrDefault(
-                        h => h.Id == id    
-                    )
-                    != null)
+                var heroi = await _repo.GetHeroiById(id);
+                if (heroi != null)
                 {
-                    _context.Herois.Update(input);
-                    _context.SaveChanges();
-                    return Ok("BAZINGA!");
+                    _repo.Update(input);
+                    if (await _repo.SaveChangeAsync())
+                        return Ok("Bazinga");
                 }
-                
-                return NotFound("Não encontrado!");
+                else
+                {
+                    return NoContent();
+                }
+
             }
             catch (Exception ex)
             {
                 return BadRequest($"Erro: {ex}");
             }
+
+            return BadRequest("Não Alterado");
         }
 
         // DELETE api/<HeroiController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
+            try
+            {
+                var heroi = await _repo.GetHeroiById(id);
+                if (heroi != null)
+                {
+                    _repo.Delete(heroi);
+                    if (await _repo.SaveChangeAsync())
+                        return Ok("Bazinga");
+                }
+                else
+                {
+                    return NoContent();
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Erro: {ex}");
+            }
+
+            return BadRequest("Não Deletado");
         }
     }
 }

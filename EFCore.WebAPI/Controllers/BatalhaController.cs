@@ -1,10 +1,7 @@
 ﻿using EFCore.Domain;
 using EFCore.Repository;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -15,20 +12,21 @@ namespace EFCore.WebAPI.Controllers
     [ApiController]
     public class BatalhaController : ControllerBase
     {
-        private readonly HeroiContext _context;
+        private readonly IEFCoreRepository _repo;
 
-        public BatalhaController(HeroiContext context)
+        public BatalhaController(IEFCoreRepository repo)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _repo = repo;
         }
 
         // GET: api/<BatalhaController>
         [HttpGet]
-        public ActionResult Get()
+        public async Task<IActionResult> Get()
         {
             try
             {
-                var batalhas = _context.Batalhas;
+                var batalhas = await _repo.GetAllBatalhas(true);
+
                 return Ok(batalhas);
             }
             catch (Exception ex)
@@ -39,14 +37,19 @@ namespace EFCore.WebAPI.Controllers
 
         // GET api/<BatalhaController>/5
         [HttpGet("{id}")]
-        public ActionResult Get([FromRoute]int id)
+        public async Task<IActionResult> Get([FromRoute]int id)
         {
             try
             {
-                var batalha = _context.Batalhas
-                                        .AsNoTracking()
-                                        .Where(b => b.Id == id);
-                return Ok(batalha);
+                var batalha = await _repo.GetBatalhaById(id, true);
+                if (batalha != null)
+                {
+                    return Ok(batalha);
+                }
+                else
+                {
+                    return NoContent();
+                }
             }
             catch (Exception ex)
             {
@@ -56,69 +59,64 @@ namespace EFCore.WebAPI.Controllers
 
         // POST api/<BatalhaController>
         [HttpPost]
-        public ActionResult Post([FromBody] Batalha input)
+        public async Task<IActionResult> Post([FromBody] Batalha input)
         {
             try
             {
-                _context.Add(input);
-                _context.SaveChanges();
+                _repo.Add(input);
 
-                return Ok();
+                if(await _repo.SaveChangeAsync())
+                {
+                    return Ok("BAZINGA");
+                }
             }
             catch (Exception ex)
             {
                 return BadRequest($"Erro: {ex}");
             }
-            
+
+            return BadRequest("Não salvou!");
         }
 
         // PUT api/<BatalhaController>/5
         [HttpPut("{id}")]
-        public ActionResult Put(int id, [FromBody] Batalha input)
+        public async Task<IActionResult> Put([FromRoute] int id, [FromBody] Batalha input)
         {
             try
             {
-                if (_context.Batalhas
-                    .AsNoTracking()
-                    .FirstOrDefault(h => h.Id == id) != null)
+                var batalha = await _repo.GetBatalhaById(id);
+                if (batalha != null)
                 {
-                    _context.Update(input);
-                    _context.SaveChanges();
-
-                    return Ok();
+                    _repo.Update(input);
+                    if (await _repo.SaveChangeAsync())
+                        return Ok("Bazinga");
                 }
                 else
                 {
                     return NoContent();
                 }
-                
+
             }
             catch (Exception ex)
             {
                 return BadRequest($"Erro: {ex}");
             }
+
+            return BadRequest("Não Alterado");
         }
 
         // DELETE api/<BatalhaController>/5
         [HttpDelete("{id}")]
-        public ActionResult Delete([FromRoute]int id)
+        public async Task<IActionResult> Delete([FromRoute]int id)
         {
             try
             {
-                if (_context.Batalhas
-                    .AsNoTracking()
-                    .FirstOrDefault(
-                        h => h.Id == id
-                    ) != null)
+                var batalha = await _repo.GetBatalhaById(id);
+                if (batalha != null)
                 {
-                    var batalha = _context.Batalhas
-                                        .AsNoTracking()
-                                        .Where(b => b.Id == id)
-                                        .Single();
-                    _context.Batalhas.Remove(batalha);
-                    _context.SaveChanges();
-
-                    return Ok();
+                    _repo.Delete(batalha);
+                    if(await _repo.SaveChangeAsync())
+                        return Ok("Bazinga");
                 }
                 else
                 {
@@ -130,6 +128,8 @@ namespace EFCore.WebAPI.Controllers
             {
                 return BadRequest($"Erro: {ex}");
             }
+
+            return BadRequest("Não Deletado");
         }
     }
 }
